@@ -1,0 +1,18 @@
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Environment=SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN=tcp://localhost:9000
+Environment=SIGNOZ_OTEL_COLLECTOR_TIMEOUT=10m
+ExecStart=/bin/bash -c '/opt/ingester/bin/signoz-otel-collector migrate bootstrap && /opt/ingester/bin/signoz-otel-collector migrate sync up && /opt/ingester/bin/signoz-otel-collector migrate async up'
+ExecStartPre=/opt/ingester/bin/signoz-otel-collector migrate ready
+Group=signoz
+RemainAfterExit=yes
+Restart=on-failure
+RestartSec=5
+Type=oneshot
+User=signoz
+
+[Unit]
+Description=SigNoz TelemetryStore Migrator
+Documentation=https://signoz.io/docs

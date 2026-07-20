@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Crucible — Autonomous Failure Remediation Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Background grid & glow effects -->
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+    <div class="grid-overlay"></div>
+ 
+    <div class="app-container">
+        <!-- Main Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <i data-lucide="shield-alert" class="logo-icon cyan-text"></i>
+                <div class="logo-text">
+                    <h1>PROJECT CRUCIBLE</h1>
+                    <p>AUTONOMOUS FAILURE REMEDIATION SRE ENGINE</p>
+                    <span class="logo-subtitle">Observe &bull; Diagnose &bull; Repair &bull; Verify</span>
+                </div>
+            </div>
+            
+            <div class="header-metrics">
+                <div class="metric-card">
+                    <span class="metric-label">AUTONOMOUS RUNTIME RECOVERY STATUS</span>
+                    <span id="sre-state" class="metric-value state-idle">IDLE</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">ERROR RATE</span>
+                    <span id="sre-error-rate" class="metric-value">0.0%</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">SYSTEM LATENCY</span>
+                    <span id="sre-latency" class="metric-value">0 ms</span>
+                </div>
+                <button id="reset-db-btn" class="control-btn" title="Reset all telemetry and logs">
+                    <i data-lucide="rotate-ccw"></i> Reset
+                </button>
+            </div>
+        </header>
+
+        <!-- SRE Flow Diagram Section -->
+        <section class="dashboard-section flow-section">
+            <h2 class="section-title"><i data-lucide="git-fork"></i> SRE Control Loop Pipeline</h2>
+            <div class="sre-flow-container">
+                <div class="flow-node" id="node-sre">
+                    <i data-lucide="terminal"></i>
+                    <span>SRE Primary Agent</span>
+                    <div class="pulse-ring"></div>
+                </div>
+                <div class="flow-connector" id="conn-sre-worker"></div>
+                <div class="flow-node" id="node-worker">
+                    <i data-lucide="cpu"></i>
+                    <span>Workers A/B (Execute)</span>
+                    <div class="pulse-ring"></div>
+                </div>
+                <div class="flow-connector" id="conn-worker-otel"></div>
+                <div class="flow-node" id="node-otel">
+                    <i data-lucide="activity"></i>
+                    <span>OTel Collector</span>
+                    <div class="pulse-ring"></div>
+                </div>
+                <div class="flow-connector" id="conn-otel-mcp"></div>
+                <div class="flow-node" id="node-mcp">
+                    <i data-lucide="share-2"></i>
+                    <span>SigNoz MCP Server</span>
+                    <div class="pulse-ring"></div>
+                </div>
+                <div class="flow-connector" id="conn-mcp-sre"></div>
+                <div class="flow-node" id="node-patch">
+                    <i data-lucide="wrench"></i>
+                    <span>Hot-Swap Patch</span>
+                    <div class="pulse-ring"></div>
+                </div>
+            </div>
+            <div class="flow-status-text">
+                <p id="sre-status-desc">System idle. Awaiting task initialization.</p>
+            </div>
+        </section>
+
+        <!-- Twin Column Layout for Traces and Code -->
+        <div class="dashboard-grid">
+            
+            <!-- Left Column: Traces and Spans -->
+            <div class="grid-column">
+                <section class="dashboard-section traces-section">
+                    <div class="section-header">
+                        <h2 class="section-title"><i data-lucide="database"></i> Captured Spans (OpenTelemetry)</h2>
+                        <span class="badge" id="span-count">0 Spans</span>
+                    </div>
+                    <div class="table-container">
+                        <table class="telemetry-table">
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Span Name</th>
+                                    <th>Service</th>
+                                    <th>Latency</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="spans-list">
+                                <tr class="empty-state-row">
+                                    <td colspan="5">No telemetry spans captured yet. Run `sre_agent.py` to populate data.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                
+                <section class="dashboard-section trace-details-section" id="trace-details-container" style="display: none;">
+                    <h2 class="section-title"><i data-lucide="search-code"></i> Trace Diagnostic details</h2>
+                    <div class="trace-details-content">
+                        <div class="trace-details-header">
+                            <div>
+                                <span class="trace-label">Trace ID</span>
+                                <span class="trace-value" id="detail-trace-id"></span>
+                            </div>
+                            <span class="badge status-error" id="detail-trace-status">ERROR</span>
+                        </div>
+                        <div class="trace-exception-block">
+                            <h4>Exception Stack Trace:</h4>
+                            <pre id="detail-traceback" class="code-block"></pre>
+                        </div>
+                        <div class="trace-metadata-block">
+                            <h4>Semantic Metadata Context:</h4>
+                            <div class="metadata-grid" id="detail-metadata"></div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right Column: Refactoring and Patches -->
+            <div class="grid-column">
+                <section class="dashboard-section refactoring-section">
+                    <h2 class="section-title"><i data-lucide="git-pull-request"></i> Autonomous Failure Remediation Mesh</h2>
+                    <div id="history-container" class="history-list">
+                        <div class="empty-history">
+                            <i data-lucide="refresh-cw" class="loading-icon"></i>
+                            <p>No code mutations applied yet.</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- Script Injection -->
+    <script src="app.js"></script>
+</body>
+</html>
