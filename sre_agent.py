@@ -19,6 +19,7 @@ import asyncio
 
 # OpenTelemetry imports
 from opentelemetry import trace
+from opentelemetry.trace.status import Status, StatusCode
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor, SpanExporter, SpanExportResult
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
@@ -263,6 +264,53 @@ async def api_trace_details(request):
         })
     return JSONResponse({"spans": spans_list})
 
+RESET_BUGGY_CODE = """# failing_task.py
+\"\"\"
+Crucible Production Substrate: High-Throughput Transaction Processing Mesh.
+Implements Ingestion validation handlers for upstream payment gateways.
+\"\"\"
+
+def process_transaction_mesh(payload: dict) -> dict:
+    \"\"\"
+    Parses incoming network payloads.
+    EXPECTED SCHEMA: {"meta": {"gateway": "stripe"}, "transactions": [{"amount": 100, "status": "settled"}]}
+    DRIFTED SCHEMA CAUSING CRASH: {"meta": {"gateway": "stripe"}, "transactions": {"batch_id": "b_99", "records": [...]}}
+    \"\"\"
+    total_volume = 0.0
+    processed_count = 0
+    
+    # BUG: Assumes 'transactions' is a list. Drifted payload presents a dictionary structure.
+    tx_list = payload.get("transactions", [])
+    if isinstance(tx_list, dict):
+        raise AttributeError("Upstream payload schema mismatch in Payment Ingestion Mesh. Expected: List[Transaction] | Received: Dict/Object wrapper ('str' object has no attribute 'get')")
+        
+    for tx in tx_list:
+        amount = tx.get("amount", 0.0)
+        total_volume += float(amount)
+        processed_count += 1
+        
+    avg_value = total_volume / processed_count
+    return {
+        "metrics": "active",
+        "processed_count": processed_count,
+        "total_volume": total_volume,
+        "avg_value": avg_value
+    }
+
+def run_task():
+    drifted_payload = {
+        "meta": {"gateway": "next_gen_stripe", "environment": "production-mesh"},
+        "transactions": {
+            "batch_id": "tx_set_2026",
+            "records": [
+                {"id": "t1", "amount": "250.50", "status": "settled"},
+                {"id": "t2", "amount": "120.00", "status": "settled"}
+            ]
+        }
+    }
+    return process_transaction_mesh(drifted_payload)
+"""
+
 async def api_reset(request):
     conn = sqlite3.connect(DB_FILE, timeout=30.0)
     cursor = conn.cursor()
@@ -273,6 +321,19 @@ async def api_reset(request):
     cursor.execute("UPDATE system_status SET value = '0.0' WHERE key = 'error_rate'")
     conn.commit()
     conn.close()
+
+    # Re-inject the buggy code payload into failing_task.py
+    try:
+        with open("failing_task.py", "w") as f:
+            f.write(RESET_BUGGY_CODE)
+        if "failing_task" in sys.modules:
+            importlib.reload(sys.modules["failing_task"])
+    except Exception as e:
+        print(f"[Reset] Error re-injecting buggy code: {e}")
+
+    # Automatically trigger SRE self-healing loop in background thread
+    threading.Thread(target=run_sre_loop, daemon=True).start()
+
     return JSONResponse({"status": "reset"})
 
 # Mount static folder containing index.html and app.js
@@ -504,21 +565,23 @@ Implements Ingestion validation handlers for upstream payment gateways.
 def process_transaction_mesh(payload: dict) -> dict:
     \"\"\"
     Parses incoming network payloads.
-    EXPECTED SCHEMA: {"meta": {"gateway": "stripe"}, "transactions": [{"amount": 100, "status": "settled"}]}
-    DRIFTED SCHEMA CAUSING CRASH: {"meta": {"gateway": "stripe"}, "transactions": {"batch_id": "b_99", "records": [...]}}
+    AUTONOMOUS REPAIR: Resolved upstream schema drift (dict wrapper vs list).
     \"\"\"
     total_volume = 0.0
     processed_count = 0
     
-    # Check if transactions is a dict and extract its records
-    tx_list = payload.get("transactions", [])
-    if isinstance(tx_list, dict):
-        tx_list = tx_list.get("records", [])
+    # AUTONOMOUS REPAIR: Dynamically handle upstream schema drift & dict wrapper
+    transactions = payload.get("transactions", [])
+    if isinstance(transactions, dict):
+        tx_list = transactions.get("records", [])
+    else:
+        tx_list = transactions
         
     for tx in tx_list:
-        amount = tx.get("amount", 0.0)
-        total_volume += float(amount)
-        processed_count += 1
+        if isinstance(tx, dict):
+            amount = tx.get("amount", 0.0)
+            total_volume += float(amount)
+            processed_count += 1
         
     avg_value = total_volume / processed_count if processed_count > 0 else 0.0
     return {
@@ -591,10 +654,23 @@ Return ONLY the complete new python code for the entire file. No markdown format
     return original_code, SIMULATED_PATCH
 
 
+def buggy_process_transaction_mesh(payload: dict) -> dict:
+    raise AttributeError("Upstream payload schema mismatch in Payment Ingestion Mesh. Expected: List[Transaction] | Received: Dict/Object wrapper ('str' object has no attribute 'get')")
+
 # --- RUNTIME CONTROLLER ---
 def run_sre_loop():
+    global failing_task
     source_file = "failing_task.py"
-    import failing_task
+    try:
+        with open(source_file, "w") as f:
+            f.write(RESET_BUGGY_CODE)
+        spec = importlib.util.spec_from_file_location("failing_task", source_file)
+        failing_task = importlib.util.module_from_spec(spec)
+        sys.modules["failing_task"] = failing_task
+        spec.loader.exec_module(failing_task)
+        failing_task.process_transaction_mesh = buggy_process_transaction_mesh
+    except Exception as e:
+        print(f"[SRE Loop Init] Error setting up buggy substrate: {e}")
     
     print("=" * 60)
     print("PROJECT CRUCIBLE: STARTING AUTONOMOUS SRE AGENT")
@@ -628,7 +704,7 @@ def run_sre_loop():
                 print(f"[SRE] 🚨 CRASH DETECTED: {error_msg}")
                 
                 child_span.record_exception(e)
-                child_span.set_status(trace.StatusCode.ERROR, description=error_msg)
+                child_span.set_status(Status(StatusCode.ERROR, error_msg))
                 
     provider.force_flush()
     
@@ -666,7 +742,10 @@ def run_sre_loop():
     # Hot-swap code reload in memory
     print("[SRE] Reloading module code in runtime memory...")
     time.sleep(1.0)
-    importlib.reload(failing_task)
+    spec = importlib.util.spec_from_file_location("failing_task", source_file)
+    failing_task = importlib.util.module_from_spec(spec)
+    sys.modules["failing_task"] = failing_task
+    spec.loader.exec_module(failing_task)
     
     # Retry Execution Loop under a new OTel trace
     print("\n[SRE] Restarting SRE Worker Task thread...")
@@ -684,11 +763,12 @@ def run_sre_loop():
             try:
                 result = failing_task.run_task()
                 print(f"[SRE] Success on retry! Result: {result}")
+                child_span.set_status(Status(StatusCode.OK))
             except Exception as e:
                 retry_error = True
                 print(f"[SRE] Retry execution failed: {e}")
                 child_span.record_exception(e)
-                child_span.set_status(trace.StatusCode.ERROR, description=str(e))
+                child_span.set_status(Status(StatusCode.ERROR, str(e)))
                 
     provider.force_flush()
     

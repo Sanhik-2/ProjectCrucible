@@ -38,7 +38,7 @@
                     <span id="sre-error-rate" class="metric-value">0.0%</span>
                 </div>
                 <div class="metric-card">
-                    <span class="metric-label">SYSTEM LATENCY</span>
+                    <span class="metric-label">HOT-SWAP LATENCY</span>
                     <span id="sre-latency" class="metric-value">0 ms</span>
                 </div>
                 <button id="reset-db-btn" class="control-btn" title="Reset all telemetry and logs">
@@ -88,7 +88,6 @@
 
         <!-- Twin Column Layout for Traces and Code -->
         <div class="dashboard-grid">
-            
             <!-- Left Column: Traces and Spans -->
             <div class="grid-column">
                 <section class="dashboard-section traces-section">
@@ -115,43 +114,43 @@
                         </table>
                     </div>
                 </section>
-                
-                <section class="dashboard-section trace-details-section" id="trace-details-container" style="display: none;">
-                    <h2 class="section-title"><i data-lucide="search-code"></i> Trace Diagnostic details</h2>
-                    <div class="trace-details-content">
-                        <div class="trace-details-header">
-                            <div>
-                                <span class="trace-label">Trace ID</span>
-                                <span class="trace-value" id="detail-trace-id"></span>
-                            </div>
-                            <span class="badge status-error" id="detail-trace-status">ERROR</span>
-                        </div>
-                        <div class="trace-exception-block">
-                            <h4>Exception Stack Trace:</h4>
-                            <pre id="detail-traceback" class="code-block"></pre>
-                        </div>
-                        <div class="trace-metadata-block">
-                            <h4>Semantic Metadata Context:</h4>
-                            <div class="metadata-grid" id="detail-metadata"></div>
-                        </div>
-                    </div>
-                </section>
             </div>
 
-            <!-- Right Column: Refactoring and Patches -->
+            <!-- Right Column: Refactoring and Patches (The Money Shot) -->
             <div class="grid-column">
                 <section class="dashboard-section refactoring-section">
                     <h2 class="section-title"><i data-lucide="git-pull-request"></i> Autonomous Failure Remediation Mesh</h2>
                     <div id="history-container" class="history-list">
                         <div class="empty-history">
                             <i data-lucide="refresh-cw" class="loading-icon"></i>
-                            <p>No code mutations applied yet.</p>
+                            <p>Initializing Autonomous Remediation Engine...</p>
                         </div>
                     </div>
                 </section>
             </div>
-            
         </div>
+
+        <!-- Full-Width Bottom Section: Trace Diagnostic Details -->
+        <section class="dashboard-section trace-details-section" id="trace-details-container" style="display: none; margin-top: 24px;">
+            <h2 class="section-title"><i data-lucide="search-code"></i> Trace Diagnostic Details (OTel & SigNoz MCP Context)</h2>
+            <div class="trace-details-content">
+                <div class="trace-details-header">
+                    <div>
+                        <span class="trace-label">Trace ID</span>
+                        <span class="trace-value" id="detail-trace-id"></span>
+                    </div>
+                    <span class="badge status-error" id="detail-trace-status">ERROR</span>
+                </div>
+                <div class="trace-exception-block">
+                    <h4>Exception Stack Trace:</h4>
+                    <pre id="detail-traceback" class="code-block"></pre>
+                </div>
+                <div class="trace-metadata-block">
+                    <h4>Semantic Metadata Context:</h4>
+                    <div class="metadata-grid" id="detail-metadata"></div>
+                </div>
+            </div>
+        </section>
     </div>
 
     <!-- Script Injection -->
