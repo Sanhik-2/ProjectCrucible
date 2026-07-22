@@ -42,3 +42,8 @@ Open `http://localhost:5000` to view the self-healing control loop pipeline in a
 
 ---
 
+## 🤖 AI Assistance & Tool Disclosure
+In accordance with the hackathon rules, we hereby declare the use of AI development assistants during this project:
+- **AI Coding & Architecture Assistants:** Used ChatGPT and Gemini for code scaffolding, debugging Linux driver stack interactions, refining system prompts, and optimizing dashboard styling.
+- **LLM Runtime Models:** Integrated OpenAI / Ollama models within Project Crucible's core SRE supervisor loop for telemetry reasoning and patch generation.
+- **Human Authorship:** All architectural design choices, OpenTelemetry pipeline setups, dynamic module reload engineering, and project integrations were directed, verified, and assembled by our team.
