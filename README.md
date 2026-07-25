@@ -2,11 +2,8 @@
 title: Project Crucible
 emoji: 🔥
 colorFrom: red
-colorTo: orange
-sdk: gradio
-sdk_version: 5.33.0
-app_file: app.py
-pinned: true
+colorTo: red
+sdk: static
 ---
 
 # Project Crucible — Autonomous Failure Remediation SRE Engine
