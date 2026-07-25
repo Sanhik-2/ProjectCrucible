@@ -42,7 +42,8 @@ from mcp.client.sse import sse_client
 from google import genai
 
 # Configuration
-TELEMETRY_API = "http://localhost:5000"
+SERVER_PORT = int(os.environ.get("PORT", "5000"))
+TELEMETRY_API = f"http://localhost:{SERVER_PORT}"
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "telemetry.db")
 SIGNOZ_API_KEY = os.environ.get("SIGNOZ_API_KEY", "iNomx5Oa4ecfnHBa5SLl6hP81D5es8bAOGmRcC0+4mI=")
 
@@ -358,7 +359,7 @@ app.add_middleware(
 )
 
 def start_dashboard_server():
-    uvicorn.run(app, host="0.0.0.0", port=5000, log_level="warning")
+    uvicorn.run(app, host="0.0.0.0", port=SERVER_PORT, log_level="warning")
 
 
 # --- CORE HELPERS ---

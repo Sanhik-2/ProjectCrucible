@@ -1,0 +1,14 @@
+venv/
+__pycache__/
+pours/
+docs/
+cloudflared
+telemetry.db
+telemetry_server.log
+dashboard.log
+*.lock
+.git/
+.tunnel_*
+LIVE_URL.txt
+go_live.sh
+tunnel.sh

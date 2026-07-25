@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: project-crucible
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/v1/status
+    envVars:
+      - key: PORT
+        value: "5000"
