@@ -1,3 +1,12 @@
+---
+title: Project Crucible
+emoji: 🔥
+colorFrom: red
+colorTo: orange
+sdk: docker
+app_port: 5000
+---
+
 # Project Crucible — Autonomous Failure Remediation SRE Engine
 
 > "Traditional observability platforms stop after identifying failures. Project Crucible closes the loop by using OpenTelemetry traces to autonomously diagnose, remediate, hot-swap, and verify production failures without manual intervention."
